@@ -123,11 +123,14 @@ def merge_data(dispatch_df: pd.DataFrame, sir_df: pd.DataFrame):
     available = [c for c in SIR_COLUMNS if c in sir_df.columns]
     missing = [c for c in SIR_COLUMNS if c not in sir_df.columns]
 
-    sir_lookup = sir_df.drop_duplicates(subset="Article")[["Article"] + available]
+    # ดึงเฉพาะคอลัมน์ที่ต้องการ (ไม่รวม Article ที่ซ้ำกับ Dispatch)
+    sir_cols_no_article = [c for c in available if c != "Article"]
+    sir_lookup = sir_df.drop_duplicates(subset="Article")[["Article"] + sir_cols_no_article]
     merged = dispatch_df.merge(sir_lookup, on="Article", how="left", suffixes=("", "_SIR"))
 
-    matched = merged[available[0]].notna().sum() if available else 0
-    return merged, matched, available, missing
+    check_col = sir_cols_no_article[0] if sir_cols_no_article else None
+    matched = int(merged[check_col].notna().sum()) if check_col else 0
+    return merged, matched, sir_cols_no_article, missing
 
 
 def to_excel_bytes(df: pd.DataFrame) -> bytes:
